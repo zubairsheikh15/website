@@ -61,7 +61,7 @@ export default function SetNewPasswordPage() {
     if (!hasSession) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-grayBG">
-                <p>Loading...</p>
+                <p>Loading</p>
             </div>
         );
     }
