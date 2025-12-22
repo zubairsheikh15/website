@@ -11,6 +11,7 @@ import { PackageSearch } from 'lucide-react';
 import CategoryItem from '@/components/product/CategoryItem';
 import { LayoutGrid, Pill, Droplet, Dumbbell, SprayCan } from 'lucide-react';
 import { logger } from '@/lib/logger';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const categories = [
     { name: 'All', icon: LayoutGrid },
@@ -59,11 +60,16 @@ export default function ProductListClient({
         if (abortControllerRef.current) {
             abortControllerRef.current.abort();
         }
+
+        // Smooth scroll to top when category/search changes
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }, [selectedCategory, searchQuery, initialProducts, initialHasMore]);
 
     // Load more products
     const loadMore = useCallback(async () => {
-        if (loadingRef.current || !hasMore) return;
+        if (loadingRef.current || !hasMore || loading) {
+            return;
+        }
 
         // Cancel previous request
         if (abortControllerRef.current) {
@@ -94,11 +100,11 @@ export default function ProductListClient({
 
             const data = await res.json();
 
-            if (data.products?.length > 0) {
+            if (data.products && data.products.length > 0) {
                 // Use functional update for better performance
                 setProducts(prev => [...prev, ...data.products]);
                 setPage(nextPage);
-                setHasMore(data.hasMore);
+                setHasMore(data.hasMore !== false);
             } else {
                 setHasMore(false);
             }
@@ -113,69 +119,201 @@ export default function ProductListClient({
                 loadingRef.current = false;
             }
         }
-    }, [hasMore, page, selectedCategory, searchQuery]);
+    }, [hasMore, page, selectedCategory, searchQuery, loading]);
 
-    // Intersection Observer - optimized for mobile
+    // Intersection Observer - optimized for infinite scroll
     useEffect(() => {
         const target = observerTarget.current;
         if (!target || !hasMore) return;
 
         const observer = new IntersectionObserver(
             (entries) => {
-                if (entries[0].isIntersecting && !loadingRef.current) {
+                if (entries[0].isIntersecting && !loadingRef.current && hasMore && !loading) {
                     loadMore();
                 }
             },
             {
-                rootMargin: '400px', // Load earlier on mobile
-                threshold: 0
+                rootMargin: '400px', // Load earlier for smooth experience
+                threshold: 0.01
             }
         );
 
         observer.observe(target);
         return () => observer.disconnect();
-    }, [loadMore, hasMore]);
+    }, [loadMore, hasMore, loading]);
+
+    // Fallback: Manual scroll handler for infinite scroll
+    useEffect(() => {
+        if (!hasMore || loadingRef.current) return;
+
+        const handleScroll = () => {
+            if (loadingRef.current || !hasMore || loading) return;
+
+            const scrollHeight = document.documentElement.scrollHeight;
+            const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+            const clientHeight = document.documentElement.clientHeight;
+
+            // Load more when user is 600px from bottom
+            if (scrollHeight - scrollTop - clientHeight < 600) {
+                loadMore();
+            }
+        };
+
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, [loadMore, hasMore, loading]);
 
     const showUploadCard = !searchQuery && (selectedCategory === 'All' || selectedCategory === 'medicine');
 
     return (
-        <div className="space-y-6">
-            {/* Categories - No animation */}
-            <div className="grid grid-cols-5 gap-x-2 gap-y-4">
-                {categories.map((cat) => (
-                    <CategoryItem
-                        key={cat.name}
-                        name={cat.name}
-                        Icon={cat.icon}
-                        isSelected={selectedCategory === cat.name && !searchQuery}
-                    />
-                ))}
-            </div>
+        <div className="space-y-8 animate-fade-in-up relative" style={{ WebkitFontSmoothing: 'antialiased', textRendering: 'optimizeLegibility', backfaceVisibility: 'hidden', willChange: 'auto' }}>
+            {/* Categories - Hide when searching with smooth transition */}
+            <AnimatePresence mode="wait">
+                {!searchQuery && (
+                    <motion.div
+                        initial={{ opacity: 0, height: 0, y: -20 }}
+                        animate={{ opacity: 1, height: 'auto', y: 0 }}
+                        exit={{ opacity: 0, height: 0, y: -20 }}
+                        transition={{ 
+                            duration: 0.3,
+                            ease: [0.4, 0, 0.2, 1],
+                            staggerChildren: 0.05
+                        }}
+                        className="grid grid-cols-5 gap-x-3 gap-y-4 px-2 overflow-hidden"
+                        style={{ WebkitFontSmoothing: 'antialiased', textRendering: 'optimizeLegibility', willChange: 'auto' }}
+                    >
+                        {categories.map((cat, index) => (
+                            <motion.div
+                                key={cat.name}
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.9 }}
+                                transition={{ 
+                                    duration: 0.2,
+                                    delay: index * 0.05,
+                                    ease: [0.4, 0, 0.2, 1]
+                                }}
+                                style={{ willChange: 'transform, opacity' }}
+                            >
+                                <CategoryItem
+                                    name={cat.name}
+                                    Icon={cat.icon}
+                                    isSelected={selectedCategory === cat.name && !searchQuery}
+                                />
+                            </motion.div>
+                        ))}
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
-            {/* Products Grid - Simple grid without animations */}
-            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
-                {showUploadCard && <MemoizedUploadCard />}
+            {/* Products Grid - Enhanced with smooth transitions */}
+            <motion.div 
+                className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-5 lg:gap-6"
+                layout
+                transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+            >
+                <AnimatePresence mode="popLayout">
+                    {showUploadCard && (
+                        <motion.div
+                            key="upload-card"
+                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                            transition={{ 
+                                duration: 0.25,
+                                ease: [0.4, 0, 0.2, 1]
+                            }}
+                            layout
+                            style={{ willChange: 'transform, opacity' }}
+                        >
+                            <MemoizedUploadCard />
+                        </motion.div>
+                    )}
 
-                {products.map((product) => (
-                    <MemoizedProductCard key={product.id} product={product} />
-                ))}
-            </div>
+                    {products.map((product, index) => (
+                        <motion.div
+                            key={`${product.id}-${index}`}
+                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                            transition={{ 
+                                duration: 0.2,
+                                delay: Math.min((index + (showUploadCard ? 1 : 0)) * 0.02, 0.2),
+                                ease: [0.4, 0, 0.2, 1]
+                            }}
+                            layout
+                            style={{ willChange: 'transform, opacity' }}
+                        >
+                            <MemoizedProductCard product={product} />
+                        </motion.div>
+                    ))}
+                </AnimatePresence>
+            </motion.div>
 
-            {/* Load More Trigger */}
-            {hasMore && (
-                <div
-                    ref={observerTarget}
-                    className="h-20 flex items-center justify-center"
-                    style={{ minHeight: '80px' }}
-                >
-                    {loading && <Spinner />}
-                </div>
-            )}
+            {/* Load More Trigger - Enhanced with transitions */}
+            <AnimatePresence>
+                {hasMore && (
+                    <motion.div
+                        ref={observerTarget}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="h-40 flex flex-col items-center justify-center gap-4 py-8 min-h-[160px]"
+                        style={{ minHeight: '160px' }}
+                    >
+                        {loading && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: 10 }}
+                                transition={{ duration: 0.2 }}
+                                className="flex flex-col items-center gap-3"
+                            >
+                                <Spinner />
+                                <p className="text-sm text-gray-500 animate-pulse">Loading more products...</p>
+                            </motion.div>
+                        )}
+                        {!loading && (
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 0.5 }}
+                                transition={{ duration: 0.2 }}
+                                className="h-1 w-20 bg-gray-200 rounded-full"
+                            />
+                        )}
+                    </motion.div>
+                )}
+            </AnimatePresence>
+            
+            {/* End of results message */}
+            <AnimatePresence>
+                {!hasMore && products.length > 0 && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 10 }}
+                        transition={{ duration: 0.3 }}
+                        className="text-center py-8"
+                    >
+                        <p className="text-sm text-gray-500">
+                            You've reached the end! 🎉
+                        </p>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* Empty State */}
-            {products.length === 0 && !loading && (
-                <div className="text-center py-16 space-y-4">
-                    <PackageSearch
+            <AnimatePresence>
+                {products.length === 0 && !loading && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 20 }}
+                        transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+                        className="text-center py-16 space-y-4"
+                    >
+                        <PackageSearch
                         size={48}
                         className={cn(
                             textColor === 'text-white'
@@ -196,8 +334,9 @@ export default function ProductListClient({
                             Try adjusting your filters
                         </p>
                     </div>
-                </div>
-            )}
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

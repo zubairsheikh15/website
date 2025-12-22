@@ -43,7 +43,7 @@ export default function ForgotPasswordPage() {
         <div className="flex items-center justify-center min-h-screen bg-grayBG">
             <div className="w-full max-w-sm p-8 space-y-6 bg-white rounded-xl shadow-medium">
                 <div className="text-center">
-                    <Image src="/icon.png" alt="Zee Crown Logo" width={50} height={50} className="mx-auto" />
+                    <img src="/logo.png" alt="Zee Crown Logo" width={80} height={80} className="mx-auto" />
                     <h1 className="mt-4 text-2xl font-bold text-dark-gray">Forgot Password</h1>
                     <p className="text-gray">Enter your email to get a reset code.</p>
                 </div>

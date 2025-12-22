@@ -1,5 +1,5 @@
 // app/layout.tsx
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { Toaster } from 'react-hot-toast';
@@ -8,6 +8,7 @@ import SupabaseProvider from '@/components/SupabaseProvider';
 import { CartProvider } from '@/store/CartContext';
 import Script from 'next/script';
 import NextTopLoader from 'nextjs-toploader'; // --- 1. ADD THIS IMPORT ---
+import CacheProvider from '@/components/CacheProvider';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -17,6 +18,18 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: 'Zee Crown',
   description: 'Discover Your Best Products Here',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Zee Crown',
+  },
+  // Next.js automatically detects icon.png and apple-icon.png in the app directory
+  // These will be used as favicon and Apple touch icon
+};
+
+export const viewport: Viewport = {
+  themeColor: '#2563EB',
 };
 
 export default function RootLayout({
@@ -40,6 +53,7 @@ export default function RootLayout({
         />
         {/* ----------------------------- */}
 
+        <CacheProvider />
         <SupabaseProvider>
           <AuthProvider>
             <CartProvider>

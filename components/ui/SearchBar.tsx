@@ -99,20 +99,22 @@ export default function SearchBar({
     return (
         <div className={cn("relative w-full", className)}>
             <form onSubmit={handleSubmit} className="relative w-full">
-                {/* Container for focus effect */}
+                {/* Container for focus effect - Enhanced mobile styling */}
                 <div className={cn(
-                    "relative flex items-center bg-white border border-gray-300 rounded-lg",
+                    "relative flex items-center bg-gray-50 dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-xl",
                     "transition-all duration-300 ease-out",
-                    "md:rounded-lg",
+                    "md:bg-white md:border md:border-gray-300 md:rounded-lg",
                     isFocused 
-                        ? "ring-2 ring-primary ring-opacity-50 border-transparent shadow-lg scale-[1.01]" 
-                        : "hover:border-gray-400",
+                        ? "ring-2 ring-primary ring-opacity-60 border-primary shadow-lg bg-white dark:bg-gray-900 scale-[1.01]" 
+                        : "hover:border-gray-300 dark:hover:border-gray-600",
                     // Mobile specific improvements
-                    "active:scale-[0.99] touch-manipulation"
+                    "active:scale-[0.98] touch-manipulation",
+                    // Better mobile appearance
+                    "md:active:scale-100"
                 )}>
                     <Search className={cn(
-                        "absolute left-3 text-gray-400 pointer-events-none transition-all duration-300",
-                        "h-4 w-4 md:h-4 md:w-4",
+                        "absolute left-4 text-gray-400 dark:text-gray-500 pointer-events-none transition-all duration-200",
+                        "h-5 w-5 md:h-4 md:w-4",
                         isFocused ? "text-primary scale-110" : ""
                     )} />
                     <input
@@ -124,14 +126,16 @@ export default function SearchBar({
                         onBlur={() => setIsFocused(false)}
                         placeholder={placeholder}
                         className={cn(
-                            "w-full rounded-lg bg-transparent text-gray-900 placeholder-gray-500",
+                            "w-full rounded-xl bg-transparent text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500",
                             "focus:outline-none",
-                            // Mobile optimizations
+                            // Mobile optimizations - Larger and more comfortable
                             "text-base md:text-sm", // Prevent zoom on iOS (text-base = 16px)
-                            "pl-10 pr-10 py-2.5 md:py-2", // Larger touch target on mobile
-                            "transition-all duration-300",
+                            "pl-12 pr-12 py-3.5 md:py-2 md:pl-10 md:pr-10", // Larger touch target on mobile
+                            "transition-all duration-200",
                             // Better mobile experience
-                            "touch-manipulation"
+                            "touch-manipulation",
+                            // Font weight for better readability
+                            "font-medium md:font-normal"
                         )}
                         aria-label="Search products"
                         autoComplete="off"
@@ -139,16 +143,17 @@ export default function SearchBar({
                         autoCapitalize="off"
                         spellCheck="false"
                     />
-                    {/* --- Icons Container --- */}
-                    <div className="absolute right-3 flex items-center h-full gap-2">
+                    {/* --- Icons Container - Enhanced mobile --- */}
+                    <div className="absolute right-4 md:right-3 flex items-center h-full gap-2">
                         {query && !isUpdatingURL && (
                             <button
                                 type="button"
                                 onClick={handleClear}
                                 className={cn(
-                                    "p-1.5 md:p-1 text-gray-400 hover:text-gray-600",
-                                    "active:scale-95 transition-all duration-200",
-                                    "touch-manipulation" // Better mobile tap
+                                    "p-2 md:p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300",
+                                    "active:scale-90 transition-all duration-200 rounded-full",
+                                    "touch-manipulation bg-gray-200/50 dark:bg-gray-700/50 md:bg-transparent",
+                                    "hover:bg-gray-300/70 dark:hover:bg-gray-600/70"
                                 )}
                                 aria-label="Clear search"
                             >

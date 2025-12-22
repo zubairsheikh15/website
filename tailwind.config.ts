@@ -103,6 +103,8 @@ const config: Config = {
 			animation: {
 				'fade-in-up': 'fade-in-up 0.3s ease-out forwards',
 				'spin-slow': 'spin 3s linear infinite',
+				'pulse-glow': 'pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+				'float': 'float 3s ease-in-out infinite',
 			},
 
 			keyframes: {
@@ -113,6 +115,14 @@ const config: Config = {
 				spin: {
 					'0%': { transform: 'rotate(0deg)' },
 					'100%': { transform: 'rotate(360deg)' },
+				},
+				'pulse-glow': {
+					'0%, 100%': { opacity: '1', boxShadow: '0 0 20px rgba(59, 130, 246, 0.5)' },
+					'50%': { opacity: '0.8', boxShadow: '0 0 30px rgba(59, 130, 246, 0.8)' },
+				},
+				float: {
+					'0%, 100%': { transform: 'translateY(0px)' },
+					'50%': { transform: 'translateY(-10px)' },
 				},
 			},
 

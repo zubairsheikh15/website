@@ -42,7 +42,7 @@ export default function OptimizedImage({
                 width={!fill ? width : undefined}
                 height={!fill ? height : undefined}
                 sizes={sizes || "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"}
-                // Removed quality prop to prevent any image transformations
+                unoptimized
                 loading={priority ? 'eager' : 'lazy'}
                 priority={priority}
                 onLoad={() => setIsLoading(false)}

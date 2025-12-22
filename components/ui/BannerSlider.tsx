@@ -86,7 +86,7 @@ export default function BannerSlider({ banners = [] }: { banners?: Banner[] }) {
     return (
         <div 
             ref={containerRef}
-            className="relative w-full max-w-5xl mx-auto overflow-hidden rounded-lg shadow-lg gpu-accelerated"
+            className="relative w-full max-w-6xl mx-auto overflow-hidden rounded-2xl shadow-lifted gpu-accelerated border border-white/20"
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
@@ -103,16 +103,17 @@ export default function BannerSlider({ banners = [] }: { banners?: Banner[] }) {
                 {safeBanners.map((banner, index) => (
                     <div
                         key={banner.id}
-                        className="flex-shrink-0 w-full aspect-video relative"
+                        className="flex-shrink-0 w-full aspect-video md:aspect-[21/9] relative"
                     >
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent z-10" />
                         <Image
                             src={banner.image_url}
                             alt={`Promotional Banner ${index + 1}`}
                             fill
-                            sizes="100vw"
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 90vw, 1200px"
                             className="object-cover"
                             priority={index === 0}
-                            quality={90}
+                            unoptimized
                             loading={index === 0 ? "eager" : "lazy"}
                         />
                     </div>
@@ -121,39 +122,39 @@ export default function BannerSlider({ banners = [] }: { banners?: Banner[] }) {
 
             {safeBanners.length > 1 && (
                 <>
-                    {/* Navigation Arrows */}
+                    {/* Navigation Arrows - Enhanced */}
                     <button
                         onClick={prevSlide}
                         disabled={isTransitioning}
-                        className="absolute left-4 top-1/2 -translate-y-1/2 z-20 bg-black/30 hover:bg-black/50 backdrop-blur-sm text-white rounded-full p-2 transition-all duration-200 ease-smooth hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 z-20 bg-white/20 hover:bg-white/40 backdrop-blur-md text-white rounded-full p-2.5 md:p-3 transition-all duration-300 ease-smooth hover:scale-110 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed border border-white/30"
                         aria-label="Previous banner"
                     >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
                         </svg>
                     </button>
                     <button
                         onClick={nextSlide}
                         disabled={isTransitioning}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 z-20 bg-black/30 hover:bg-black/50 backdrop-blur-sm text-white rounded-full p-2 transition-all duration-200 ease-smooth hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 z-20 bg-white/20 hover:bg-white/40 backdrop-blur-md text-white rounded-full p-2.5 md:p-3 transition-all duration-300 ease-smooth hover:scale-110 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed border border-white/30"
                         aria-label="Next banner"
                     >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                         </svg>
                     </button>
 
-                    {/* Dots Indicator */}
-                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-2 z-10">
+                    {/* Dots Indicator - Enhanced */}
+                    <div className="absolute bottom-4 md:bottom-6 left-1/2 -translate-x-1/2 flex space-x-2.5 z-10 bg-black/20 backdrop-blur-md px-4 py-2 rounded-full border border-white/20">
                         {safeBanners.map((_, index) => (
                             <button
                                 key={index}
                                 onClick={() => goToSlide(index)}
                                 disabled={isTransitioning}
-                                className={`h-2 rounded-full transition-all duration-300 ease-smoother ${
+                                className={`rounded-full transition-all duration-300 ease-smoother ${
                                     currentIndex === index 
-                                        ? 'w-8 bg-primary shadow-lg' 
-                                        : 'w-2 bg-white/70 hover:bg-white/90 hover:scale-125'
+                                        ? 'w-8 h-2.5 bg-white shadow-lg' 
+                                        : 'w-2.5 h-2.5 bg-white/60 hover:bg-white/90 hover:scale-125'
                                 }`}
                                 style={{ willChange: 'width, background-color, transform' }}
                                 aria-label={`Go to slide ${index + 1}`}

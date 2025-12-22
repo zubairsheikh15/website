@@ -1,5 +1,4 @@
 // app/(main)/loading.tsx
-import Image from 'next/image';
 
 export default function Loading() {
     return (
@@ -11,13 +10,12 @@ export default function Loading() {
 
                 {/* The spinning logo */}
                 <div className="relative animate-spin-slow">
-                    <Image
-                        src="/icon.png"
+                    <img
+                        src="/logo.png"
                         alt="Loading..."
                         width={96}
                         height={96}
-                        priority
-                        className="rounded-full" // Added to make it look cleaner as it spins
+                        className="rounded-full object-contain" // Added to make it look cleaner as it spins
                     />
                 </div>
             </div>

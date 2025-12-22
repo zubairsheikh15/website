@@ -118,9 +118,10 @@ export default function ProductDetailModal({ product, closeModal, onNavigate }: 
                         src={product.image_url} 
                         alt={product.name} 
                         fill 
-                        style={{ objectFit: 'cover' }} 
-                        priority 
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 40vw"
                         className="object-cover"
+                        priority
+                        unoptimized 
                     />
                 </div>
 

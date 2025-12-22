@@ -1,6 +1,6 @@
 'use client';
 
-import { Camera, Plus } from 'lucide-react';
+import { Camera, Plus, MessageCircle } from 'lucide-react';
 
 export default function UploadPrescriptionCard() {
     const handlePress = () => {
@@ -11,20 +11,29 @@ export default function UploadPrescriptionCard() {
     return (
         <button
             onClick={handlePress}
-            className="group block w-full text-left rounded-xl overflow-hidden bg-white shadow-subtle transition-all duration-200 ease-out hover:shadow-medium"
-            style={{ willChange: 'box-shadow' }}
+            className="group relative block w-full text-left rounded-2xl overflow-hidden bg-white shadow-md card-hover gpu-accelerated border border-gray-100/50"
         >
-            <div className="relative w-full aspect-square overflow-hidden bg-theme-green flex items-center justify-center">
-                <Camera className="h-1/3 w-1/3 text-theme-green-fg transition-opacity duration-200 ease-out group-hover:opacity-90" />
+            {/* Gradient overlay */}
+            <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 pointer-events-none" />
+            
+            {/* Image container */}
+            <div className="relative w-full aspect-square overflow-hidden bg-gradient-to-br from-emerald-400 via-green-500 to-emerald-600 flex items-center justify-center">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.2),transparent_70%)]" />
+                <Camera className="relative z-10 h-1/3 w-1/3 text-white transition-all duration-300 group-hover:scale-110 group-hover:rotate-12" />
             </div>
-            <div className="p-3">
-                <h3 className="text-sm font-semibold truncate text-dark-gray">Upload Prescription</h3>
-                <div className="flex items-center justify-between mt-1">
-                    <div>
-                        <span className="text-base font-bold text-theme-green-fg">Send via WhatsApp</span>
+            
+            {/* Content section */}
+            <div className="relative p-4 bg-white z-10">
+                <h3 className="text-sm font-semibold truncate text-gray-900 mb-2 group-hover:text-green-600 transition-colors duration-200">
+                    Upload Prescription
+                </h3>
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <MessageCircle className="h-4 w-4 text-green-600" />
+                        <span className="text-sm font-bold text-green-600">Send via WhatsApp</span>
                     </div>
-                    <div className="bg-lighter-gray p-1.5 rounded-full text-dark-gray transition-all duration-300 md:opacity-0 md:group-hover:opacity-100 md:group-hover:bg-primary md:group-hover:text-white">
-                        <Plus size={16} />
+                    <div className="bg-gradient-to-br from-green-500 to-green-600 p-2.5 rounded-full text-white shadow-lg transform group-hover:scale-110 group-hover:rotate-90 transition-all duration-300">
+                        <Plus size={18} className="transition-transform duration-300" />
                     </div>
                 </div>
             </div>

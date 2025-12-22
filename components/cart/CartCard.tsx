@@ -27,8 +27,9 @@ export default function CartCard({ item, onIncrement, onDecrement, onRemove }: C
                     src={item.products.image_url}
                     alt={item.products.name}
                     fill
-                    style={{ objectFit: 'cover' }}
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    sizes="96px"
+                    className="object-cover"
+                    unoptimized
                 />
             </div>
             <div className="flex-grow">

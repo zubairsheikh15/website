@@ -278,7 +278,8 @@ function CheckoutPageContent() {
 
 
                 const selectedAddress = addresses.find(a => a.id === selectedAddressId);
-                const razorpayKeyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
+                // Support both NEXT_PUBLIC_ and EXPO_PUBLIC_ prefixes
+                const razorpayKeyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID;
                 if (!razorpayKeyId) {
                     throw new Error('Razorpay key is not configured');
                 }

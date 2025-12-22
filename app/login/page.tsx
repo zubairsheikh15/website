@@ -91,7 +91,7 @@ function LoginPageContent() {
                     </button>
                 )}
                 <div className="text-center">
-                    <Image src="/icon.png" alt="Zee Crown Logo" width={50} height={50} className="mx-auto" />
+                    <img src="/logo.png" alt="Zee Crown Logo" width={80} height={80} className="mx-auto" />
                     <h1 className="mt-4 text-2xl font-bold text-dark-gray">Welcome Back</h1>
                     <p className="text-gray">Sign in to continue to Zee Crown.</p>
                 </div>

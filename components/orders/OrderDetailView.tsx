@@ -185,6 +185,7 @@ const OrderItemCard = ({ item, index }: { item: any, index: number }) => (
                 fill
                 sizes="96px"
                 className="object-cover"
+                unoptimized
             />
             <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-full text-xs font-bold">
                 x{item.quantity}

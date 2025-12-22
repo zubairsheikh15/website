@@ -9,10 +9,11 @@ export default function ProductImageSlider({ imageUrl, alt }: { imageUrl: string
             <Image
                 src={imageUrl}
                 alt={alt}
-                fill={true}
-                style={{ objectFit: 'cover' }}
-                priority
+                fill
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 40vw"
                 className="object-cover"
+                priority
+                unoptimized
             />
         </div>
     );

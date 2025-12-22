@@ -1,7 +1,7 @@
 // app/(main)/layout.tsx
 'use client';
 
-// import Footer from '@/components/layout/Footer'; // <-- Footer stays removed
+import Footer from '@/components/layout/Footer';
 import Navbar from '@/components/layout/Navbar';
 import { useSearchParams } from 'next/navigation';
 import { useMemo, Suspense } from 'react';
@@ -10,13 +10,12 @@ import Loading from './loading'; // Keep loading for Suspense
 import { ProductModalProvider } from '@/components/product/ProductModalProvider';
 
 const categoryBgClasses: { [key: string]: string } = {
-    // --- THIS IS THE UPDATED LINE ---
-    'All': 'from-grayBG to-lighter-gray', // Explicitly setting "All" to a light grey gradient
+    'All': 'from-gray-50 via-gray-100 to-gray-50', // Elegant light grey gradient
 
-    medicine: 'from-[#6EE7B7] to-[#34D399]',   // soft light-green gradient
-    cosmetics: 'from-[#93C5FD] to-[#3B82F6]',  // soft light-blue gradient
-    food: 'from-[#FCA5A5] to-[#EF4444]',       // soft light-red gradient
-    perfumes: 'from-[#FDE68A] to-[#F59E0B]',   // light-golden gradient
+    medicine: 'from-emerald-50 via-green-50 to-emerald-100',   // soft light-green gradient
+    cosmetics: 'from-blue-50 via-indigo-50 to-blue-100',  // soft light-blue gradient
+    food: 'from-red-50 via-rose-50 to-red-100',       // soft light-red gradient
+    perfumes: 'from-amber-50 via-yellow-50 to-amber-100',   // light-golden gradient
 };
 
 
@@ -26,7 +25,7 @@ interface MainLayoutProps {
 }
 
 // This component uses the search params to dynamically change the background.
-function MainLayoutContent({ children, modal }: MainLayoutProps) {
+function MainLayoutContent({ children, modal }: MainLayoutProps & { modal?: React.ReactNode }) {
     const searchParams = useSearchParams();
 
     // This correctly defaults to 'All'
@@ -40,11 +39,16 @@ function MainLayoutContent({ children, modal }: MainLayoutProps) {
     return (
         <ProductModalProvider>
             <div className={cn(
-                "flex flex-col min-h-screen bg-gradient-to-b transition-colors duration-300 ease-out overflow-x-hidden",
-                bgGradient // <-- This will now be the light grey gradient for "All"
+                "flex flex-col min-h-screen bg-gradient-to-br transition-all duration-500 ease-smoother overflow-x-hidden",
+                bgGradient, // <-- This will now be the light grey gradient for "All"
+                "relative"
             )}
             style={{ willChange: 'background-color' }}
             >
+                {/* Animated background overlay - Hidden on mobile to prevent blur */}
+                <div className="hidden md:block fixed inset-0 -z-10 opacity-20">
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(59,130,246,0.1),transparent_50%)]" />
+                </div>
 
                 <Navbar />
 
@@ -57,14 +61,14 @@ function MainLayoutContent({ children, modal }: MainLayoutProps) {
                     {modal}
                 </main>
 
-                {/* Footer is still removed */}
+                <Footer />
             </div>
         </ProductModalProvider>
     );
 }
 
 // The Suspense wrapper is still required because MainLayoutContent uses useSearchParams.
-export default function MainLayout({ children, modal }: MainLayoutProps) {
+export default function MainLayout({ children, modal }: MainLayoutProps & { modal?: React.ReactNode }) {
     return (
         <Suspense fallback={<Loading />}>
             <MainLayoutContent modal={modal}>
