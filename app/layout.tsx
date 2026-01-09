@@ -18,18 +18,25 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: 'Zee Crown',
   description: 'Discover Your Best Products Here',
+  icons: {
+    icon: '/icon-app.png',
+    apple: '/apple-icon-app.png',
+  },
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
     title: 'Zee Crown',
   },
-  // Next.js automatically detects icon.png and apple-icon.png in the app directory
-  // These will be used as favicon and Apple touch icon
 };
 
 export const viewport: Viewport = {
   themeColor: '#2563EB',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({

@@ -5,6 +5,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { Search, X, Loader2 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { AnimatePresence, motion } from 'framer-motion';
 
 interface SearchBarProps {
     onSearch?: () => void;
@@ -13,20 +14,14 @@ interface SearchBarProps {
     placeholder?: string;
 }
 
-// Debounce function (no changes needed here)
+// Debounce function
 function debounce<F extends (...args: any[]) => any>(func: F, waitFor: number) {
     let timeoutId: NodeJS.Timeout | null = null;
-
     return (...args: Parameters<F>): void => {
-        if (timeoutId) {
-            clearTimeout(timeoutId);
-        }
-        timeoutId = setTimeout(() => {
-            func(...args);
-        }, waitFor);
+        if (timeoutId) clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => func(...args), waitFor);
     };
 }
-
 
 export default function SearchBar({
     onSearch,
@@ -39,40 +34,30 @@ export default function SearchBar({
     const [query, setQuery] = useState(searchParams.get('q') || '');
     const [isFocused, setIsFocused] = useState(false);
     const [isUpdatingURL, setIsUpdatingURL] = useState(false);
-
     const inputRef = useRef<HTMLInputElement>(null);
 
     const updateURL = useCallback((searchTerm: string) => {
         const currentQuery = new URLSearchParams(Array.from(searchParams.entries()));
         const term = searchTerm.trim();
-
         if (term) {
             currentQuery.set('q', term);
         } else {
             currentQuery.delete('q');
         }
-
         const search = currentQuery.toString();
         router.replace(`/${search ? `?${search}` : ''}`, { scroll: false });
-        // Set timeout to ensure spinner shows for a minimum duration for visual feedback
-        setTimeout(() => setIsUpdatingURL(false), 150); // Shorter delay after navigation
+        setTimeout(() => setIsUpdatingURL(false), 150);
     }, [router, searchParams]);
 
     const debouncedUpdateURL = useCallback(debounce(updateURL, 400), [updateURL]);
 
     useEffect(() => {
-        if (autoFocus && inputRef.current) {
-            inputRef.current.focus();
-        }
+        if (autoFocus && inputRef.current) inputRef.current.focus();
     }, [autoFocus]);
 
     useEffect(() => {
-        // Only update query state from URL if the input is NOT currently focused
-        // This prevents the URL change (caused by debouncing) from resetting the input while typing
-        if (!isFocused) {
-            setQuery(searchParams.get('q') || '');
-        }
-    }, [searchParams, isFocused]); // Add isFocused dependency
+        if (!isFocused) setQuery(searchParams.get('q') || '');
+    }, [searchParams, isFocused]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const newValue = e.target.value;
@@ -84,8 +69,6 @@ export default function SearchBar({
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         inputRef.current?.blur();
-        // Update URL immediately on submit if needed, or rely on debounce
-        // updateURL(query); // Uncomment if immediate update on Enter is desired
         onSearch?.();
     };
 
@@ -97,26 +80,21 @@ export default function SearchBar({
     };
 
     return (
-        <div className={cn("relative w-full", className)}>
+        <div className={cn("relative w-full group", className)}>
             <form onSubmit={handleSubmit} className="relative w-full">
-                {/* Container for focus effect - Enhanced mobile styling */}
                 <div className={cn(
-                    "relative flex items-center bg-gray-50 dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-xl",
-                    "transition-all duration-300 ease-out",
-                    "md:bg-white md:border md:border-gray-300 md:rounded-lg",
-                    isFocused 
-                        ? "ring-2 ring-primary ring-opacity-60 border-primary shadow-lg bg-white dark:bg-gray-900 scale-[1.01]" 
-                        : "hover:border-gray-300 dark:hover:border-gray-600",
-                    // Mobile specific improvements
-                    "active:scale-[0.98] touch-manipulation",
-                    // Better mobile appearance
-                    "md:active:scale-100"
+                    "relative flex items-center transition-all duration-300 ease-out rounded-xl overflow-hidden",
+                    "bg-muted/50 border border-transparent",
+                    isFocused
+                        ? "bg-background ring-2 ring-primary/20 border-primary/50 shadow-lg scale-[1.01]"
+                        : "hover:bg-muted/80 hover:border-border"
                 )}>
                     <Search className={cn(
-                        "absolute left-4 text-gray-400 dark:text-gray-500 pointer-events-none transition-all duration-200",
-                        "h-5 w-5 md:h-4 md:w-4",
+                        "absolute left-4 text-muted-foreground transition-all duration-300",
+                        "h-4 w-4",
                         isFocused ? "text-primary scale-110" : ""
                     )} />
+
                     <input
                         ref={inputRef}
                         type="text"
@@ -126,45 +104,34 @@ export default function SearchBar({
                         onBlur={() => setIsFocused(false)}
                         placeholder={placeholder}
                         className={cn(
-                            "w-full rounded-xl bg-transparent text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500",
+                            "w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground/70",
+                            "pl-11 pr-10 py-2.5",
                             "focus:outline-none",
-                            // Mobile optimizations - Larger and more comfortable
-                            "text-base md:text-sm", // Prevent zoom on iOS (text-base = 16px)
-                            "pl-12 pr-12 py-3.5 md:py-2 md:pl-10 md:pr-10", // Larger touch target on mobile
-                            "transition-all duration-200",
-                            // Better mobile experience
-                            "touch-manipulation",
-                            // Font weight for better readability
-                            "font-medium md:font-normal"
+                            "font-medium"
                         )}
-                        aria-label="Search products"
                         autoComplete="off"
-                        autoCorrect="off"
-                        autoCapitalize="off"
-                        spellCheck="false"
                     />
-                    {/* --- Icons Container - Enhanced mobile --- */}
-                    <div className="absolute right-4 md:right-3 flex items-center h-full gap-2">
-                        {query && !isUpdatingURL && (
-                            <button
-                                type="button"
-                                onClick={handleClear}
-                                className={cn(
-                                    "p-2 md:p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300",
-                                    "active:scale-90 transition-all duration-200 rounded-full",
-                                    "touch-manipulation bg-gray-200/50 dark:bg-gray-700/50 md:bg-transparent",
-                                    "hover:bg-gray-300/70 dark:hover:bg-gray-600/70"
-                                )}
-                                aria-label="Clear search"
-                            >
-                                <X className="h-5 w-5 md:h-4 md:w-4" />
-                            </button>
-                        )}
+
+                    <div className="absolute right-3 flex items-center gap-1">
+                        <AnimatePresence>
+                            {query && !isUpdatingURL && (
+                                <motion.button
+                                    initial={{ opacity: 0, scale: 0.8 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.8 }}
+                                    type="button"
+                                    onClick={handleClear}
+                                    className="p-1 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                                >
+                                    <X className="h-3.5 w-3.5" />
+                                </motion.button>
+                            )}
+                        </AnimatePresence>
+
                         {isUpdatingURL && (
-                            <Loader2 className="h-5 w-5 md:h-4 md:w-4 text-primary animate-spin" />
+                            <Loader2 className="h-3.5 w-3.5 text-primary animate-spin" />
                         )}
                     </div>
-                    {/* --- End Icons Container --- */}
                 </div>
             </form>
         </div>

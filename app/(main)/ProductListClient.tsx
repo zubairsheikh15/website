@@ -1,7 +1,7 @@
-// app/(main)/ProductListClient.tsx (OPTIMIZED)
+// app/(main)/ProductListClient.tsx
 'use client';
 
-import { useState, useEffect, useRef, useCallback, memo } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef, useCallback, memo } from 'react';
 import { ProductCardType } from '@/lib/types';
 import ProductCard from '@/components/product/ProductCard';
 import Spinner from '@/components/ui/Spinner';
@@ -24,7 +24,6 @@ const categories = [
 interface ProductListClientProps {
     initialProducts: ProductCardType[];
     initialHasMore: boolean;
-    textColor: string;
     selectedCategory: string;
     searchQuery: string;
 }
@@ -36,42 +35,165 @@ const MemoizedUploadCard = memo(UploadPrescriptionCard);
 export default function ProductListClient({
     initialProducts,
     initialHasMore,
-    textColor,
     selectedCategory,
     searchQuery
 }: ProductListClientProps) {
+    // State initialization
     const [products, setProducts] = useState<ProductCardType[]>(initialProducts);
     const [page, setPage] = useState(0);
     const [hasMore, setHasMore] = useState(initialHasMore);
     const [loading, setLoading] = useState(false);
+
+    // Refs
     const observerTarget = useRef<HTMLDivElement>(null);
     const loadingRef = useRef(false);
     const abortControllerRef = useRef<AbortController | null>(null);
+    const isRestoringRef = useRef(false);
 
-    // Reset when filters change
+    // KEY GEN: Generate a unique key for the current view
+    const getViewKey = useCallback(() => {
+        return `viewState_${selectedCategory}_${searchQuery}`;
+    }, [selectedCategory, searchQuery]);
+
+    // Handle manual scroll restoration setting as early as possible
+    useLayoutEffect(() => {
+        if (typeof history !== 'undefined' && 'scrollRestoration' in history) {
+            history.scrollRestoration = 'manual';
+        }
+    }, []);
+
+    // RESTORE STATE: On mount or param change, try to load from cache
     useEffect(() => {
+        const key = getViewKey();
+        const cached = sessionStorage.getItem(key);
+
+        console.log('[Restore] Checking cache for key:', key, cached ? 'Found' : 'Not Found');
+
+        if (cached) {
+            try {
+                const data = JSON.parse(cached);
+                // Only restore if we have valid data and products
+                if (data && Array.isArray(data.products) && data.products.length > 0) {
+                    console.log('[Restore] Restoring state:', data.products.length, 'products, page:', data.page, 'scrollY:', data.scrollY);
+
+                    isRestoringRef.current = true;
+                    setProducts(data.products);
+                    setPage(data.page || 0);
+                    setHasMore(data.hasMore);
+
+                    // Force immediate scroll attempt in case DOM is ready
+                    if (data.scrollY) {
+                        window.scrollTo({ top: data.scrollY, behavior: 'auto' });
+                    }
+
+                    // Robust scroll restoration loop - try for longer
+                    const targetScroll = data.scrollY || 0;
+                    let attempts = 0;
+                    const maxAttempts = 50; // Try for ~5 seconds
+
+                    const attemptScroll = () => {
+                        // Always try to scroll - browser will clamp if too short
+                        window.scrollTo({ top: targetScroll, behavior: 'auto' });
+
+                        const currentScroll = window.scrollY;
+                        const dist = Math.abs(currentScroll - targetScroll);
+
+                        // Only log periodically to reduce spam
+                        if (attempts % 5 === 0) {
+                            console.log(`[Restore] Attempt ${attempts}: Target ${targetScroll}, Current ${currentScroll}, Dist ${dist}`);
+                        }
+
+                        // Success condition: We are close enough
+                        if (dist < 50) {
+                            console.log('[Restore] Success!');
+                            isRestoringRef.current = false;
+                            return;
+                        }
+
+                        attempts++;
+                        if (attempts < maxAttempts) {
+                            requestAnimationFrame(() => setTimeout(attemptScroll, 100));
+                        } else {
+                            console.log('[Restore] Max attempts reached. Final position:', window.scrollY);
+                            isRestoringRef.current = false;
+                        }
+                    };
+
+                    // Start loop
+                    requestAnimationFrame(() => setTimeout(attemptScroll, 100));
+                    return;
+                }
+            } catch (e) {
+                console.error("Failed to restore state", e);
+            }
+        }
+
+        // No cache: Default behavior
+        console.log('[Restore] No cache found, using initial props');
+        isRestoringRef.current = false;
+
+        // Only reset to initial props if we don't have them matching current
+        // (This check avoids unnecessary re-renders if products are already initial)
         setProducts(initialProducts);
         setPage(0);
         setHasMore(initialHasMore);
-        setLoading(false);
-        loadingRef.current = false;
 
-        // Cancel any in-flight requests
-        if (abortControllerRef.current) {
-            abortControllerRef.current.abort();
-        }
-
-        // Smooth scroll to top when category/search changes
         window.scrollTo({ top: 0, behavior: 'smooth' });
-    }, [selectedCategory, searchQuery, initialProducts, initialHasMore]);
+
+    }, [getViewKey, initialProducts, initialHasMore]);
+
+    // SAVE STATE: Save current state to sessionStorage before unmounting or changing params
+    useEffect(() => {
+        const handleSave = () => {
+            // Guard: Don't save if restoring or if scroll is at top (likely glitch if we have data)
+            // Increased guard threshold to ensure we don't save bad state during glitchy loads
+            if (isRestoringRef.current && window.scrollY < 50) {
+                console.log('[Save] Skipping save - restoration in progress');
+                return;
+            }
+
+            const key = getViewKey();
+            const stateToSave = {
+                products,
+                page,
+                hasMore,
+                scrollY: window.scrollY
+            };
+            console.log('[Save] Saving state for key:', key, stateToSave);
+            sessionStorage.setItem(key, JSON.stringify(stateToSave));
+        };
+
+        // Save on Cleanup (unmount or dependency change)
+        return () => {
+            handleSave();
+        };
+    }, [getViewKey, products, page, hasMore]);
+
+    // Visibility change listener
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'hidden') {
+                if (isRestoringRef.current && window.scrollY < 50) return;
+
+                const key = getViewKey();
+                const stateToSave = {
+                    products,
+                    page,
+                    hasMore,
+                    scrollY: window.scrollY
+                };
+                sessionStorage.setItem(key, JSON.stringify(stateToSave));
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, [getViewKey, products, page, hasMore]);
+
 
     // Load more products
     const loadMore = useCallback(async () => {
-        if (loadingRef.current || !hasMore || loading) {
-            return;
-        }
+        if (loadingRef.current || !hasMore || loading) return;
 
-        // Cancel previous request
         if (abortControllerRef.current) {
             abortControllerRef.current.abort();
         }
@@ -80,7 +202,6 @@ export default function ProductListClient({
         const nextPage = page + 1;
         setLoading(true);
 
-        // Create new abort controller
         const controller = new AbortController();
         abortControllerRef.current = controller;
 
@@ -92,7 +213,8 @@ export default function ProductListClient({
             });
 
             const res = await fetch(`/api/products?${params}`, {
-                cache: 'no-store',
+                cache: 'force-cache',
+                headers: { 'Cache-Control': 'max-age=300' },
                 signal: controller.signal,
             });
 
@@ -101,7 +223,6 @@ export default function ProductListClient({
             const data = await res.json();
 
             if (data.products && data.products.length > 0) {
-                // Use functional update for better performance
                 setProducts(prev => [...prev, ...data.products]);
                 setPage(nextPage);
                 setHasMore(data.hasMore !== false);
@@ -121,7 +242,7 @@ export default function ProductListClient({
         }
     }, [hasMore, page, selectedCategory, searchQuery, loading]);
 
-    // Intersection Observer - optimized for infinite scroll
+    // Intersection Observer
     useEffect(() => {
         const target = observerTarget.current;
         if (!target || !hasMore) return;
@@ -132,68 +253,33 @@ export default function ProductListClient({
                     loadMore();
                 }
             },
-            {
-                rootMargin: '400px', // Load earlier for smooth experience
-                threshold: 0.01
-            }
+            { rootMargin: '400px', threshold: 0.01 }
         );
 
         observer.observe(target);
         return () => observer.disconnect();
     }, [loadMore, hasMore, loading]);
 
-    // Fallback: Manual scroll handler for infinite scroll
-    useEffect(() => {
-        if (!hasMore || loadingRef.current) return;
-
-        const handleScroll = () => {
-            if (loadingRef.current || !hasMore || loading) return;
-
-            const scrollHeight = document.documentElement.scrollHeight;
-            const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
-            const clientHeight = document.documentElement.clientHeight;
-
-            // Load more when user is 600px from bottom
-            if (scrollHeight - scrollTop - clientHeight < 600) {
-                loadMore();
-            }
-        };
-
-        window.addEventListener('scroll', handleScroll, { passive: true });
-        return () => window.removeEventListener('scroll', handleScroll);
-    }, [loadMore, hasMore, loading]);
-
     const showUploadCard = !searchQuery && (selectedCategory === 'All' || selectedCategory === 'medicine');
 
     return (
-        <div className="space-y-8 animate-fade-in-up relative" style={{ WebkitFontSmoothing: 'antialiased', textRendering: 'optimizeLegibility', backfaceVisibility: 'hidden', willChange: 'auto' }}>
-            {/* Categories - Hide when searching with smooth transition */}
+        <div className="space-y-10 animate-fade-in-up relative pb-20">
+            {/* Categories */}
             <AnimatePresence mode="wait">
                 {!searchQuery && (
                     <motion.div
                         initial={{ opacity: 0, height: 0, y: -20 }}
                         animate={{ opacity: 1, height: 'auto', y: 0 }}
                         exit={{ opacity: 0, height: 0, y: -20 }}
-                        transition={{ 
-                            duration: 0.3,
-                            ease: [0.4, 0, 0.2, 1],
-                            staggerChildren: 0.05
-                        }}
-                        className="grid grid-cols-5 gap-x-3 gap-y-4 px-2 overflow-hidden"
-                        style={{ WebkitFontSmoothing: 'antialiased', textRendering: 'optimizeLegibility', willChange: 'auto' }}
+                        transition={{ duration: 0.3 }}
+                        className="grid grid-cols-5 gap-1 md:flex md:flex-wrap md:justify-center md:gap-4 py-2 px-2 w-full"
                     >
                         {categories.map((cat, index) => (
                             <motion.div
                                 key={cat.name}
                                 initial={{ opacity: 0, scale: 0.9 }}
                                 animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.9 }}
-                                transition={{ 
-                                    duration: 0.2,
-                                    delay: index * 0.05,
-                                    ease: [0.4, 0, 0.2, 1]
-                                }}
-                                style={{ willChange: 'transform, opacity' }}
+                                transition={{ delay: index * 0.05 }}
                             >
                                 <CategoryItem
                                     name={cat.name}
@@ -206,25 +292,20 @@ export default function ProductListClient({
                 )}
             </AnimatePresence>
 
-            {/* Products Grid - Enhanced with smooth transitions */}
-            <motion.div 
-                className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-5 lg:gap-6"
+            {/* Products Grid */}
+            <motion.div
+                className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6"
                 layout
-                transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+                transition={{ duration: 0.2 }}
             >
                 <AnimatePresence mode="popLayout">
                     {showUploadCard && (
                         <motion.div
                             key="upload-card"
-                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                            transition={{ 
-                                duration: 0.25,
-                                ease: [0.4, 0, 0.2, 1]
-                            }}
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.9 }}
                             layout
-                            style={{ willChange: 'transform, opacity' }}
                         >
                             <MemoizedUploadCard />
                         </motion.div>
@@ -233,16 +314,11 @@ export default function ProductListClient({
                     {products.map((product, index) => (
                         <motion.div
                             key={`${product.id}-${index}`}
-                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                            transition={{ 
-                                duration: 0.2,
-                                delay: Math.min((index + (showUploadCard ? 1 : 0)) * 0.02, 0.2),
-                                ease: [0.4, 0, 0.2, 1]
-                            }}
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.9 }}
+                            transition={{ delay: index * 0.02 }}
                             layout
-                            style={{ willChange: 'transform, opacity' }}
                         >
                             <MemoizedProductCard product={product} />
                         </motion.div>
@@ -250,93 +326,48 @@ export default function ProductListClient({
                 </AnimatePresence>
             </motion.div>
 
-            {/* Load More Trigger - Enhanced with transitions */}
+            {/* Load More / End Message */}
             <AnimatePresence>
-                {hasMore && (
+                {hasMore ? (
                     <motion.div
                         ref={observerTarget}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        transition={{ duration: 0.2 }}
-                        className="h-40 flex flex-col items-center justify-center gap-4 py-8 min-h-[160px]"
-                        style={{ minHeight: '160px' }}
+                        className="flex justify-center py-8"
                     >
                         {loading && (
-                            <motion.div
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: 10 }}
-                                transition={{ duration: 0.2 }}
-                                className="flex flex-col items-center gap-3"
-                            >
+                            <div className="flex flex-col items-center gap-2">
                                 <Spinner />
-                                <p className="text-sm text-gray-500 animate-pulse">Loading more products...</p>
-                            </motion.div>
-                        )}
-                        {!loading && (
-                            <motion.div
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 0.5 }}
-                                transition={{ duration: 0.2 }}
-                                className="h-1 w-20 bg-gray-200 rounded-full"
-                            />
+                                <span className="text-sm text-muted-foreground">Loading more...</span>
+                            </div>
                         )}
                     </motion.div>
-                )}
-            </AnimatePresence>
-            
-            {/* End of results message */}
-            <AnimatePresence>
-                {!hasMore && products.length > 0 && (
+                ) : products.length > 0 ? (
                     <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 10 }}
-                        transition={{ duration: 0.3 }}
-                        className="text-center py-8"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="text-center py-10"
                     >
-                        <p className="text-sm text-gray-500">
-                            You've reached the end! 🎉
+                        <p className="text-muted-foreground text-sm font-medium bg-muted/30 inline-block px-4 py-2 rounded-full">
+                            You've seen it all! 🎉
                         </p>
                     </motion.div>
-                )}
+                ) : null}
             </AnimatePresence>
 
             {/* Empty State */}
-            <AnimatePresence>
-                {products.length === 0 && !loading && (
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 20 }}
-                        transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-                        className="text-center py-16 space-y-4"
-                    >
-                        <PackageSearch
-                        size={48}
-                        className={cn(
-                            textColor === 'text-white'
-                                ? 'text-white/50'
-                                : 'text-gray-300'
-                        )}
-                    />
-                    <div>
-                        <h3 className={cn('text-xl font-bold', textColor)}>
-                            No Products Found
-                        </h3>
-                        <p className={cn(
-                            'mt-2 text-sm',
-                            textColor === 'text-white'
-                                ? 'text-white/70'
-                                : 'text-gray-500'
-                        )}>
-                            Try adjusting your filters
-                        </p>
+            {products.length === 0 && !loading && (
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                    <div className="bg-muted/50 p-6 rounded-full mb-4">
+                        <PackageSearch size={48} className="text-muted-foreground/50" />
                     </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+                    <h3 className="text-xl font-bold text-foreground">No Products Found</h3>
+                    <p className="mt-2 text-muted-foreground max-w-xs mx-auto">
+                        We couldn't find matches for "{searchQuery}". Try adjusting your filters.
+                    </p>
+                </div>
+            )}
         </div>
     );
 }

@@ -69,12 +69,10 @@ async function HomePageContent({ searchParams }: HomePageProps) {
 
     const { banners, initialProducts, hasMore } = await getPageData(selectedCategory, searchQuery);
 
-    const textColor = (selectedCategory === 'All' || searchQuery) ? 'text-dark-gray' : 'text-white';
-
     return (
-        <div className="container mx-auto px-4 sm:px-6 md:px-8 space-y-8 pb-24" style={{ WebkitFontSmoothing: 'antialiased', textRendering: 'optimizeLegibility' }}>
+        <div className="container-width space-y-12 pb-24">
             {!searchQuery && (
-                <div className="mt-4 animate-fade-in-up">
+                <div className="mt-6 animate-fade-in-up">
                     <BannerSliderWrapper banners={banners} />
                 </div>
             )}
@@ -83,7 +81,6 @@ async function HomePageContent({ searchParams }: HomePageProps) {
                 <ProductListClient
                     initialProducts={initialProducts}
                     initialHasMore={hasMore}
-                    textColor={textColor}
                     selectedCategory={selectedCategory}
                     searchQuery={searchQuery}
                 />

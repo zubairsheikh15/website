@@ -1,4 +1,4 @@
-// app/(main)/cart/page.tsx (OPTIMIZED - Key sections)
+// app/(main)/cart/page.tsx
 "use client";
 
 import { createClient } from '@/lib/supabase-client';
@@ -8,70 +8,85 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import toast from 'react-hot-toast';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // UI & Icon Imports
 import CartCard from '@/components/cart/CartCard';
-import BackButton from '@/components/ui/BackButton';
 import Button from '@/components/ui/Button';
-import { ShoppingCart, Loader2, ArrowRight, PackageX } from 'lucide-react';
+import { ShoppingCart, Loader2, ArrowRight, PackageOpen, Truck, ArrowLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import Spinner from '@/components/ui/Spinner';
 
-// --- Simplified components (NO motion) ---
+// --- Components ---
 const FreeShippingBar = ({ subtotal, threshold }: { subtotal: number; threshold: number }) => {
     if (!threshold || subtotal <= 0) return null;
 
-    const remainingAmount = threshold - subtotal;
+    const remainingAmount = Math.max(0, threshold - subtotal);
     const progressPercentage = Math.min((subtotal / threshold) * 100, 100);
     const isFreeShipping = remainingAmount <= 0;
 
-    if (isFreeShipping) {
-        return (
-            <div className="bg-green-50 border border-green-200 p-4 mb-6 text-center rounded-lg">
-                <p className="font-semibold text-green-600">🎉 You've unlocked FREE delivery! 🎉</p>
-            </div>
-        );
-    }
-
     return (
-        <div className="bg-white shadow-sm p-4 mb-6 rounded-lg border border-gray-200">
-            <p className="text-center text-sm md:text-base font-medium text-gray-700 mb-2">
-                Add <span className="font-bold text-primary">₹{remainingAmount.toFixed(2)}</span> more to get FREE delivery!
-            </p>
-            <div className="relative w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
-                <div
-                    className="absolute inset-0 bg-primary rounded-full transition-all duration-300"
-                    style={{ width: `${progressPercentage}%` }}
+        <div className="glass-panel p-5 mb-6 rounded-2xl border border-white/20 relative overflow-hidden">
+            {/* Progress Background */}
+            <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent pointer-events-none" />
+
+            <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-3 mb-3">
+                <div className="flex items-center gap-2">
+                    <div className="p-2 bg-primary/10 rounded-lg text-primary">
+                        <Truck size={20} />
+                    </div>
+                    <div>
+                        {isFreeShipping ? (
+                            <p className="font-semibold text-green-600">🎉 Free Delivery Unlocked!</p>
+                        ) : (
+                            <p className="font-medium text-foreground">
+                                Add <span className="font-bold text-primary">₹{remainingAmount.toFixed(0)}</span> for <span className="text-primary font-bold">Free Delivery</span>
+                            </p>
+                        )}
+                    </div>
+                </div>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                    {isFreeShipping ? '100%' : `${Math.round(progressPercentage)}%`} Reached
+                </p>
+            </div>
+
+            <div className="relative w-full bg-secondary rounded-full h-2 overflow-hidden shadow-inner">
+                <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${progressPercentage}%` }}
+                    transition={{ duration: 1, ease: "easeOut" }}
+                    className={cn(
+                        "absolute inset-0 rounded-full h-full shadow-lg transition-all duration-300",
+                        isFreeShipping ? "bg-gradient-to-r from-green-500 to-emerald-400" : "bg-gradient-to-r from-blue-500 to-indigo-500"
+                    )}
                 />
             </div>
         </div>
     );
 };
 
-const LoadingState = () => (
-    <div className="flex flex-col justify-center items-center h-[60vh] text-center">
-        <Loader2 className="h-16 w-16 text-primary animate-spin mb-6" />
-        <p className="text-xl font-semibold text-gray-700">Loading Your Cart...</p>
-    </div>
-);
-
 const EmptyState = () => (
-    <div className="text-center py-16 md:py-24 px-4 flex flex-col items-center">
-        <div className="bg-gray-200 p-6 rounded-full mb-6">
-            <PackageX strokeWidth={1.5} className="h-16 w-16 md:h-20 md:w-20 text-gray-400" />
+    <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="flex flex-col items-center justify-center py-20 px-4 text-center"
+    >
+        <div className="w-32 h-32 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-6 shadow-inner relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-tr from-transparent to-white/20" />
+            <PackageOpen strokeWidth={1} className="h-16 w-16 text-gray-400" />
         </div>
-        <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">
+        <h2 className="text-3xl font-heading font-bold text-foreground mb-3">
             Your Cart is Empty
         </h2>
-        <p className="mt-3 text-base md:text-lg text-gray-600 max-w-md mx-auto">
-            Looks like you haven't added anything yet. Let's find something for you!
+        <p className="text-muted-foreground max-w-md mx-auto mb-8 text-lg">
+            Looks like you haven't added anything yet.
         </p>
-        <Button asChild className="mt-8 px-8 py-3 text-base rounded-xl">
+        <Button asChild className="px-8 py-4 text-base rounded-full shadow-glow">
             <Link href="/" className="flex items-center gap-2">
-                <ShoppingCart className="h-5 w-5" />
-                Start Shopping
+                Start Shopping <ArrowRight className="h-4 w-4" />
             </Link>
         </Button>
-    </div>
+    </motion.div>
 );
 
 // --- MAIN CART PAGE COMPONENT ---
@@ -121,6 +136,7 @@ export default function CartPage() {
     );
 
     useEffect(() => {
+        // Simplified Shipping Rule Logic (Mocked for speed if DB table is complex, but using DB here)
         const fetchShippingRules = async () => {
             const { data, error } = await supabase
                 .from('shipping_rules')
@@ -181,31 +197,38 @@ export default function CartPage() {
 
     const total = subtotal + shippingFee;
 
-    return (
-        <div className="min-h-screen">
-            <div className="container mx-auto px-4 sm:px-6 md:px-8">
-                <div className="flex items-center mb-8">
-                    <BackButton />
-                    <h1 className="text-3xl md:text-4xl font-bold ml-4 text-gray-900">
-                        My Cart
-                    </h1>
-                    {!loading && cartItems.length > 0 && (
-                        <span className="ml-3 bg-primary text-white text-sm font-bold px-3 py-1 rounded-full">
-                            {cartItems.length}
-                        </span>
-                    )}
-                </div>
+    if (loading) return (
+        <div className="min-h-screen flex items-center justify-center">
+            <Spinner />
+        </div>
+    );
 
-                {loading ? (
-                    <LoadingState />
-                ) : cartItems.length === 0 ? (
-                    <EmptyState />
-                ) : (
-                    <div className="flex flex-col lg:flex-row lg:items-start gap-8 lg:gap-10">
-                        {/* Cart Items */}
-                        <div className="flex-grow space-y-6">
-                            <FreeShippingBar subtotal={subtotal} threshold={freeShippingThreshold} />
-                            <div className="space-y-4">
+    return (
+        <div className="container mx-auto px-4 md:px-8 max-w-7xl">
+            <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-center gap-4 mb-8"
+            >
+                <Link href="/" className="p-2 -ml-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-full transition-colors">
+                    <ArrowLeft className="w-6 h-6" />
+                </Link>
+                <h1 className="text-3xl md:text-4xl font-heading font-bold text-foreground">
+                    My Shopping Bag
+                    {cartItems.length > 0 && <span className="ml-2 text-lg text-muted-foreground font-normal">({cartItems.length} Items)</span>}
+                </h1>
+            </motion.div>
+
+            {cartItems.length === 0 ? (
+                <EmptyState />
+            ) : (
+                <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 relative items-start">
+                    {/* Cart Items List */}
+                    <div className="flex-grow w-full lg:w-3/5 xl:w-2/3 space-y-6">
+                        <FreeShippingBar subtotal={subtotal} threshold={freeShippingThreshold} />
+
+                        <div className="space-y-4">
+                            <AnimatePresence mode='popLayout'>
                                 {cartItems.map((item) => (
                                     <CartCard
                                         key={item.id}
@@ -215,45 +238,56 @@ export default function CartPage() {
                                         onRemove={() => removeItem(item.id)}
                                     />
                                 ))}
-                            </div>
-                        </div>
-
-                        {/* Order Summary */}
-                        <div className="w-full lg:w-96 lg:sticky lg:top-24">
-                            <div className="bg-white shadow-md p-6 rounded-xl border border-gray-200">
-                                <h2 className="text-2xl font-bold mb-5 text-gray-900">
-                                    Order Summary
-                                </h2>
-                                <div className="space-y-4">
-                                    <div className="flex justify-between items-center text-gray-600">
-                                        <p>Subtotal</p>
-                                        <p className="font-semibold text-gray-900">₹{subtotal.toFixed(2)}</p>
-                                    </div>
-                                    <div className="flex justify-between items-center text-gray-600">
-                                        <p>Shipping Fee</p>
-                                        <p className={cn("font-semibold", shippingFee === 0 ? "text-green-600" : "text-gray-900")}>
-                                            {shippingFee > 0 ? `₹${shippingFee.toFixed(2)}` : 'FREE'}
-                                        </p>
-                                    </div>
-                                    <hr className="my-4 border-gray-200" />
-                                    <div className="flex justify-between items-center text-gray-900">
-                                        <p className="text-lg font-bold">Total</p>
-                                        <p className="text-2xl font-bold text-primary">₹{total.toFixed(2)}</p>
-                                    </div>
-                                </div>
-                                <Button
-                                    onClick={() => router.push('/checkout')}
-                                    className="w-full mt-6"
-                                    disabled={loading || subtotal === 0}
-                                >
-                                    Proceed to Checkout
-                                    <ArrowRight className="h-5 w-5 ml-2" />
-                                </Button>
-                            </div>
+                            </AnimatePresence>
                         </div>
                     </div>
-                )}
-            </div>
+
+                    {/* Order Summary Sidebar */}
+                    <div className="w-full lg:w-2/5 xl:w-1/3 lg:sticky lg:top-24">
+                        <motion.div
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            className="glass-panel p-6 md:p-8 rounded-3xl border border-white/20 shadow-lg relative overflow-hidden"
+                        >
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl pointer-events-none -translate-y-1/2 translate-x-1/2" />
+
+                            <h2 className="text-2xl font-bold mb-6 text-foreground font-heading">Order Summary</h2>
+
+                            <div className="space-y-4 mb-6">
+                                <div className="flex justify-between items-center text-muted-foreground">
+                                    <span>Subtotal</span>
+                                    <span className="text-foreground font-medium">₹{subtotal.toFixed(2)}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-muted-foreground">
+                                    <span>Shipping</span>
+                                    <span className={cn("font-medium", shippingFee === 0 ? "text-green-500" : "text-foreground")}>
+                                        {shippingFee === 0 ? 'Free' : `₹${shippingFee.toFixed(2)}`}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="h-px w-full bg-border/50 mb-6" />
+
+                            <div className="flex justify-between items-end mb-8">
+                                <span className="text-lg font-bold text-foreground">Total</span>
+                                <span className="text-3xl font-bold text-primary">₹{total.toFixed(2)}</span>
+                            </div>
+
+                            <Button
+                                onClick={() => router.push('/checkout')}
+                                className="w-full py-5 text-lg font-bold rounded-xl shadow-soft hover:shadow-glow transition-all"
+                                disabled={subtotal === 0}
+                            >
+                                Checkout Now <ArrowRight className="h-5 w-5 ml-2" />
+                            </Button>
+
+                            <p className="text-xs text-center text-muted-foreground mt-4">
+                                Secure Checkout. 100% Authentic Products.
+                            </p>
+                        </motion.div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
